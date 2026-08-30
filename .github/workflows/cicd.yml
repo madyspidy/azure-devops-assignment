@@ -4,9 +4,14 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   test-and-build:
@@ -32,3 +37,50 @@ jobs:
       - name: Build Docker image
         working-directory: project-2-cicd/app
         run: docker build -t 8byte-flask-app .
+
+      - name: Azure Login
+        if: github.event_name == 'push'
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        if: github.event_name == 'push'
+        run: az acr login --name 8byteassignmentacr
+
+      - name: Build and Push Docker Image
+        if: github.event_name == 'push'
+        working-directory: project-2-cicd/app
+        run: |
+          docker build -t 8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }} .
+          docker tag 8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }} 8byteassignmentacr.azurecr.io/8byte-flask-app:latest
+          docker push 8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }}
+          docker push 8byteassignmentacr.azurecr.io/8byte-flask-app:latest
+
+
+              - name: Deploy to Staging VM
+        if: github.event_name == 'push'
+        run: |
+          az vm run-command invoke \
+            --resource-group 8byte_assignment-rg \
+            --name 8byte_assignment-vm \
+            --command-id RunShellScript \
+            --scripts "
+              sudo az login --identity
+              sudo az acr login --name 8byteassignmentacr
+
+              sudo docker pull 8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }}
+
+              sudo docker rm -f 8byte-staging 2>/dev/null || true
+
+              sudo docker run -d \
+                --name 8byte-staging \
+                --restart unless-stopped \
+                -p 5000:5000 \
+                8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }}
+
+              sleep 5
+              curl -f http://localhost:5000/health
+            "

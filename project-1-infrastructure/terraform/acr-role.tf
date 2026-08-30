@@ -9,3 +9,9 @@ resource "azurerm_role_assignment" "github_acr_push" {
   role_definition_name = "AcrPush"
   principal_id         = "57b4346b-a280-4f0b-8ed6-a44cbd7c18bb"
 }
+
+resource "azurerm_role_assignment" "github_vm_access" {
+  scope                = azurerm_linux_virtual_machine.app.id
+  role_definition_name = "Virtual Machine Contributor"
+  principal_id         = "57b4346b-a280-4f0b-8ed6-a44cbd7c18bb"
+}
