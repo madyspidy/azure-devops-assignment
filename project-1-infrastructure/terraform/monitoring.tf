@@ -7,6 +7,7 @@ resource "azurerm_log_analytics_workspace" "main" {
   retention_in_days   = 30
 }
 
+
 # Azure Monitor Agent
 resource "azurerm_virtual_machine_extension" "azure_monitor_agent" {
   name                       = "AzureMonitorLinuxAgent"
@@ -16,6 +17,7 @@ resource "azurerm_virtual_machine_extension" "azure_monitor_agent" {
   type_handler_version       = "1.0"
   auto_upgrade_minor_version = true
 }
+
 
 # Data Collection Rule
 resource "azurerm_monitor_data_collection_rule" "main" {
@@ -32,7 +34,11 @@ resource "azurerm_monitor_data_collection_rule" "main" {
   }
 
   data_flow {
-    streams      = ["Microsoft-Perf"]
+    streams = [
+      "Microsoft-Perf",
+      "Microsoft-Syslog"
+    ]
+
     destinations = ["law"]
   }
 
@@ -48,8 +54,23 @@ resource "azurerm_monitor_data_collection_rule" "main" {
         "\\Logical Disk(*)\\% Used Space"
       ]
     }
+
+    syslog {
+      name           = "linux-syslog"
+      streams        = ["Microsoft-Syslog"]
+      facility_names = ["*"]
+
+      log_levels = [
+        "Warning",
+        "Error",
+        "Critical",
+        "Alert",
+        "Emergency"
+      ]
+    }
   }
 }
+
 
 # Associate DCR with VM
 resource "azurerm_monitor_data_collection_rule_association" "vm" {
@@ -58,6 +79,8 @@ resource "azurerm_monitor_data_collection_rule_association" "vm" {
   data_collection_rule_id = azurerm_monitor_data_collection_rule.main.id
 }
 
+
+# Application Insights
 resource "azurerm_application_insights" "app" {
   name                = "8byte-assignment-appinsights"
   location            = azurerm_resource_group.main.location
