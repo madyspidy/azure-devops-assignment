@@ -109,26 +109,6 @@ az login
 
 The Terraform state is stored remotely in an Azure Storage Account.
 
-First go to:
-
-```bash
-cd project-1-infrastructure/backend-setup
-```
-
-Initialize Terraform:
-
-```bash
-terraform init
-```
-
-Deploy the backend:
-
-```bash
-terraform apply
-```
-
-This creates the Azure Storage Account and container used to store the Terraform state.
-
 ### Deploy Main Infrastructure
 
 Go to:
