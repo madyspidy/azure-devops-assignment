@@ -83,3 +83,40 @@ jobs:
               sleep 5
               curl -f http://localhost:5000/health
             "
+  deploy-production:
+    needs: test-and-build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Production VM
+        run: |
+          az vm run-command invoke \
+            --resource-group 8byte_assignment-rg \
+            --name 8byte_assignment-vm \
+            --command-id RunShellScript \
+            --scripts "
+              sudo az login --identity
+              sudo az acr login --name 8byteassignmentacr
+
+              sudo docker pull 8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }}
+
+              sudo docker rm -f 8byte-app 2>/dev/null || true
+
+              sudo docker run -d \
+                --name 8byte-app \
+                --restart unless-stopped \
+                -p 80:5000 \
+                8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }}
+
+              sleep 5
+              curl -f http://localhost/health
+            "            
