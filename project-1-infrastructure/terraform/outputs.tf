@@ -17,3 +17,8 @@ output "postgresql_fqdn" {
   description = "PostgreSQL Flexible Server FQDN"
   value       = azurerm_postgresql_flexible_server.main.fqdn
 }
+
+output "application_insights_connection_string" {
+  value     = azurerm_application_insights.app.connection_string
+  sensitive = true
+}
