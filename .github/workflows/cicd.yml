@@ -56,6 +56,7 @@ jobs:
         run: |
           docker build -t 8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }} .
           docker tag 8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }} 8byteassignmentacr.azurecr.io/8byte-flask-app:latest
+
           docker push 8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }}
           docker push 8byteassignmentacr.azurecr.io/8byte-flask-app:latest
 
@@ -78,11 +79,13 @@ jobs:
                 --name 8byte-staging \
                 --restart unless-stopped \
                 -p 5000:5000 \
+                -e APPLICATIONINSIGHTS_CONNECTION_STRING='${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}' \
                 8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }}
 
               sleep 5
               curl -f http://localhost:5000/health
             "
+
   deploy-production:
     needs: test-and-build
     if: github.event_name == 'push'
@@ -115,8 +118,9 @@ jobs:
                 --name 8byte-app \
                 --restart unless-stopped \
                 -p 80:5000 \
+                -e APPLICATIONINSIGHTS_CONNECTION_STRING='${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}' \
                 8byteassignmentacr.azurecr.io/8byte-flask-app:${{ github.sha }}
 
               sleep 5
               curl -f http://localhost/health
-            "            
+            "
