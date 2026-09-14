@@ -38,12 +38,23 @@ resource "azurerm_linux_virtual_machine" "app" {
   }
 
   custom_data = base64encode(<<-EOF
-              #!/bin/bash
-              apt-get update
-              apt-get install -y nginx
-              systemctl enable nginx
-              systemctl start nginx
-              EOF
+#!/bin/bash
+set -e
+
+apt-get update -y
+
+# Install Docker
+apt-get install -y docker.io curl ca-certificates apt-transport-https
+systemctl enable docker
+systemctl start docker
+
+# Install Azure CLI
+curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+
+# Make sure nginx does not occupy port 80
+systemctl stop nginx || true
+systemctl disable nginx || true
+EOF
   )
 
   identity {
